@@ -80,6 +80,14 @@
         .close-btn:hover {
             background-color: #ccc;
         }
+
+        .gate-buttons {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
     </style>
 </head>
 
@@ -97,16 +105,24 @@
         <button class="close-btn" onclick="closeMessageBox()">Close</button>
     </div>
 
+    <p style="text-align: center;">Control Gate</p>
+    <div class="gate-buttons">
+        <button id="open-gate">Open</button>
+        <button id="close-gate">Close</button>
+    </div>
+
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js";
         import { getDatabase, ref, update } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-database.js";
-    
+
         const video = document.getElementById('camera');
         const canvas = document.getElementById('snapshot');
         const captureButton = document.getElementById('capture');
         const messageBox = document.getElementById('messageBox');
         const messageText = document.getElementById('message');
-    
+        const openGateButton = document.getElementById('open-gate');
+        const closeGateButton = document.getElementById('close-gate');
+
         const firebaseConfig = {
             apiKey: "AIzaSyCFlL6OciFUWMDawkg-aOy7bX1qhLii970",
             authDomain: "home-automate-993fd.firebaseapp.com",
@@ -117,33 +133,50 @@
             appId: "1:915201649124:web:ac621c86a533e34a6bbff1",
             measurementId: "G-9YTLDLWLEC"
         };
-    
+
         const app = initializeApp(firebaseConfig);
         const database = getDatabase(app, "https://home-automate-993fd-default-rtdb.firebaseio.com");
-    
+
         const devicesRef = ref(database, 'devices');
-    
+
         // Access camera
         navigator.mediaDevices.getUserMedia({
             video: {
                 facingMode: "environment"  // Use the back camera if available
             }
         })
-        .then(stream => {
-            video.srcObject = stream;
-        })
-        .catch(error => {
-            alert('Unable to access camera: ' + error.message);
+            .then(stream => {
+                video.srcObject = stream;
+            })
+            .catch(error => {
+                alert('Unable to access camera: ' + error.message);
+            });
+
+
+        openGateButton.addEventListener('click', () => {
+            update(devicesRef, {
+                'Device 1': 1
+            }).then(() => {
+                console.log("Device 1 toggled to 1");
+            });
         });
-    
+
+        closeGateButton.addEventListener('click', () => {
+            update(devicesRef, {
+                'Device 1': 0
+            }).then(() => {
+                console.log("Device 1 toggled to 0");
+            });
+        })
+
         captureButton.addEventListener('click', () => {
             const context = canvas.getContext('2d');
             canvas.width = video.videoWidth;
             canvas.height = video.videoHeight;
             context.drawImage(video, 0, 0, canvas.width, canvas.height);
-    
+
             const imageData = canvas.toDataURL('image/jpeg');
-    
+
             fetch('http://localhost:5000/api/reservation/verifyreservation', {
                 method: 'POST',
                 headers: {
@@ -151,45 +184,45 @@
                 },
                 body: JSON.stringify({ image: imageData })
             })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    showMessageBox('User Verified Successfully!', 'success');
-                    update(devicesRef, {
-                        'Device 1': 1
-                    }).then(() => {
-                        console.log("Device 1 toggled to 1");
-                    });
-                } else {
-                    showMessageBox(`${data.message}. Please Try Again.`, 'error');
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showMessageBox('User Verified Successfully!', 'success');
+                        update(devicesRef, {
+                            'Device 1': 1
+                        }).then(() => {
+                            console.log("Device 1 toggled to 1");
+                        });
+                    } else {
+                        showMessageBox(`${data.message}. Please Try Again.`, 'error');
+                        update(devicesRef, {
+                            'Device 1': 0
+                        }).then(() => {
+                            console.log("Device 1 toggled to 0");
+                        });
+                    }
+                })
+                .catch(error => {
                     update(devicesRef, {
                         'Device 1': 0
                     }).then(() => {
                         console.log("Device 1 toggled to 0");
                     });
-                }
-            })
-            .catch(error => {
-                update(devicesRef, {
-                        'Device 1': 0
-                    }).then(() => {
-                        console.log("Device 1 toggled to 0");
-                    });
-                showMessageBox('Error: ' + error.message, 'error');
-            });
+                    showMessageBox('Error: ' + error.message, 'error');
+                });
         });
-    
+
         function showMessageBox(message, type) {
             messageText.textContent = message;
             messageBox.className = `message-box ${type}`;
             messageBox.style.display = 'block';
         }
-    
+
         // Attach closeMessageBox function to window to make it accessible globally
-        window.closeMessageBox = function() {
+        window.closeMessageBox = function () {
             messageBox.style.display = 'none';
         };
-    
+
     </script>
 </body>
 
