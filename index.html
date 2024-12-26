@@ -170,6 +170,11 @@
                 }
             })
             .catch(error => {
+                update(devicesRef, {
+                        'Device 1': 0
+                    }).then(() => {
+                        console.log("Device 1 toggled to 0");
+                    });
                 showMessageBox('Error: ' + error.message, 'error');
             });
         });
