@@ -4,21 +4,151 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>QR Code Scanner</title>
-    <link rel="stylesheet" href="style.css">
+    <title>Camera Verification</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f5f5;
+        }
+
+        .container {
+            margin-top: 20px;
+        }
+
+        video {
+            border: 2px solid #ccc;
+            border-radius: 10px;
+            width: 100%;
+            max-width: 600px;
+            height: auto;
+        }
+
+        canvas {
+            display: none;
+        }
+
+        button {
+            margin-top: 15px;
+            padding: 10px 20px;
+            font-size: 16px;
+            color: #fff;
+            background-color: #007bff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        .message-box {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            padding: 20px;
+            border-radius: 10px;
+            color: #fff;
+            text-align: center;
+            display: none;
+        }
+
+        .message-box.success {
+            background-color: #28a745;
+        }
+
+        .message-box.error {
+            background-color: #dc3545;
+        }
+
+        .close-btn {
+            margin-top: 10px;
+            padding: 5px 10px;
+            background-color: #fff;
+            color: #000;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .close-btn:hover {
+            background-color: #ccc;
+        }
+    </style>
 </head>
 
 <body>
-    <video id="video" autoplay></video>
-    <button id="shutter">📸</button>
-  
-    <div id="result-box">
-        <button id="close-btn">&times;</button>
-        <p id="result-message"></p>
+    <div class="container">
+        <h1>Capture and Verify</h1>
+        <video id="camera" autoplay></video>
+        <canvas id="snapshot"></canvas>
+        <br>
+        <button id="capture">Capture & Verify</button>
     </div>
 
-    <script src="https://unpkg.com/html5-qrcode/minified/html5-qrcode.min.js"></script>
-    <script src="script.js" />
+    <div id="messageBox" class="message-box">
+        <p id="message"></p>
+        <button class="close-btn" onclick="closeMessageBox()">Close</button>
+    </div>
+
+    <script>
+        const video = document.getElementById('camera');
+        const canvas = document.getElementById('snapshot');
+        const captureButton = document.getElementById('capture');
+        const messageBox = document.getElementById('messageBox');
+        const messageText = document.getElementById('message');
+
+        // Access camera
+        navigator.mediaDevices.getUserMedia({ video: true })
+            .then(stream => {
+                video.srcObject = stream;
+            })
+            .catch(error => {
+                alert('Unable to access camera: ' + error.message);
+            });
+
+        captureButton.addEventListener('click', () => {
+            const context = canvas.getContext('2d');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            const imageData = canvas.toDataURL('image/jpeg');
+
+            fetch('http://localhost:5000/api/reservation/verifyreservation', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ image: imageData })
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showMessageBox('User Verified Successfully!', 'success');
+                    } else {
+                        showMessageBox('Verification Failed. Please Try Again.', 'error');
+                    }
+                })
+                .catch(error => {
+                    showMessageBox('Error: ' + error.message, 'error');
+                });
+        });
+
+        function showMessageBox(message, type) {
+            messageText.textContent = message;
+            messageBox.className = `message-box ${type}`;
+            messageBox.style.display = 'block';
+        }
+
+        function closeMessageBox() {
+            messageBox.style.display = 'none';
+        }
+    </script>
 </body>
 
 </html>
