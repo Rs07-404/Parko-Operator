@@ -103,13 +103,18 @@
         const messageText = document.getElementById('message');
 
         // Access camera
-        navigator.mediaDevices.getUserMedia({ video: true })
+        navigator.mediaDevices.getUserMedia({
+            video: {
+                facingMode: "environment"  // Use the back camera if available
+            }
+        })
             .then(stream => {
                 video.srcObject = stream;
             })
             .catch(error => {
                 alert('Unable to access camera: ' + error.message);
             });
+
 
         captureButton.addEventListener('click', () => {
             const context = canvas.getContext('2d');
