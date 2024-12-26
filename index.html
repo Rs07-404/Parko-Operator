@@ -131,7 +131,7 @@
                     if (data.success) {
                         showMessageBox('User Verified Successfully!', 'success');
                     } else {
-                        showMessageBox('Verification Failed. Please Try Again.', 'error');
+                        showMessageBox(`${data.message}. Please Try Again.`, 'error');
                     }
                 })
                 .catch(error => {
